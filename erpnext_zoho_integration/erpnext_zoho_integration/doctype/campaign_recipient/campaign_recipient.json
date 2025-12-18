@@ -1,0 +1,195 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{contact}-{email}-{##}",
+ "creation": "2025-12-18 10:45:59.938157",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "campaign",
+  "contact",
+  "email",
+  "zoho_contact_id",
+  "column_break_1",
+  "action_type",
+  "action_date",
+  "open_count",
+  "sent_time",
+  "details_section",
+  "location",
+  "country",
+  "city",
+  "state",
+  "column_break_2",
+  "is_spam",
+  "is_optout",
+  "contact_status",
+  "additional_data_section",
+  "open_reports",
+  "full_name",
+  "company_name",
+  "job_title"
+ ],
+ "fields": [
+  {
+   "fieldname": "campaign",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Campaign",
+   "options": "Campaign",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contact",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Contact",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Email",
+   "options": "Email",
+   "reqd": 1
+  },
+  {
+   "fieldname": "zoho_contact_id",
+   "fieldtype": "Data",
+   "label": "Zoho Contact ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "action_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Action Type",
+   "options": "Sent\nOpened\nClicked\nHard Bounced\nSoft Bounced\nUnsubscribed\nComplaint",
+   "reqd": 1
+  },
+  {
+   "fieldname": "action_date",
+   "fieldtype": "Datetime",
+   "label": "Action Date"
+  },
+  {
+   "default": "0",
+   "fieldname": "open_count",
+   "fieldtype": "Int",
+   "label": "Open Count"
+  },
+  {
+   "fieldname": "sent_time",
+   "fieldtype": "Datetime",
+   "label": "Sent Time"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Location Details"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "label": "Country"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Data",
+   "label": "State"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_spam",
+   "fieldtype": "Check",
+   "label": "Is Spam"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_optout",
+   "fieldtype": "Check",
+   "label": "Is Opt-Out"
+  },
+  {
+   "fieldname": "contact_status",
+   "fieldtype": "Data",
+   "label": "Contact Status"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "additional_data_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Data"
+  },
+  {
+   "fieldname": "open_reports",
+   "fieldtype": "Long Text",
+   "label": "Open Reports (JSON)"
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name"
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Company Name"
+  },
+  {
+   "fieldname": "job_title",
+   "fieldtype": "Data",
+   "label": "Job Title"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-12-18 12:22:01.773859",
+ "modified_by": "Administrator",
+ "module": "Erpnext Zoho Integration",
+ "name": "Campaign Recipient",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

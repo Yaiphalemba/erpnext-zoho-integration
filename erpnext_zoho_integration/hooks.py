@@ -47,6 +47,9 @@ app_license = "mit"
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
+doctype_js = {
+    "Campaign": "public/js/campaign.js"
+}
 
 # Svg Icons
 # ------------------
@@ -165,6 +168,11 @@ app_license = "mit"
 # 		"erpnext_zoho_integration.tasks.monthly"
 # 	],
 # }
+scheduler_events = {
+    "hourly": [
+        "erpnext_zoho_integration.erpnext_zoho_integration.api.sync.sync_all_campaigns"
+    ]
+}
 
 # Testing
 # -------

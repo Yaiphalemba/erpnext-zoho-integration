@@ -70,6 +70,36 @@ frappe.ui.form.on('Zoho Settings', {
                     }
                 });
             });
+            
+            // Sync All Campaigns button
+            if (frm.doc.is_active) {
+                frm.add_custom_button(__('Sync All Campaigns'), function() {
+                    frappe.call({
+                        method: 'erpnext_zoho_integration.erpnext_zoho_integration.api.sync.sync_all_campaigns',
+                        freeze: true,
+                        freeze_message: __('Syncing campaigns from Zoho...'),
+                        callback: function(r) {
+                            if (r.message) {
+                                let msg = __('Synced {0} out of {1} campaigns successfully', 
+                                    [r.message.synced_count, r.message.total_campaigns]);
+                                
+                                if (r.message.errors && r.message.errors.length > 0) {
+                                    msg += '<br><br><b>Errors:</b><br>';
+                                    r.message.errors.forEach(err => {
+                                        msg += `${err.campaign}: ${err.error}<br>`;
+                                    });
+                                }
+                                
+                                frappe.msgprint({
+                                    title: __('Sync Complete'),
+                                    message: msg,
+                                    indicator: r.message.errors.length > 0 ? 'orange' : 'green'
+                                });
+                            }
+                        }
+                    });
+                });
+            }
         }
     }
 });

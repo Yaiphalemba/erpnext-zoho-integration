@@ -27,7 +27,6 @@ def make_api_call(endpoint, method="GET", params=None, data=None):
     token = get_valid_token()
     
     headers = {
-        "Content-Type": "application/json",
         "Authorization": f"Zoho-oauthtoken {token}"
     }
     
@@ -44,8 +43,10 @@ def make_api_call(endpoint, method="GET", params=None, data=None):
         
         # Check Zoho's response status
         if result.get("status") != "success":
-            error_msg = result.get("message", "Unknown error")
-            frappe.throw(_(f"Zoho API Error: {error_msg}"))
+            msg = result.get("message", "").lower()
+            if "no contacts" in msg:
+                return result
+            frappe.throw(_(f"Zoho API Error: {result.get('message')}"))
         
         return result
         
@@ -129,8 +130,8 @@ def get_campaign_recipients(campaign_key, action="openedcontacts", fromindex=1, 
             "resfmt": "JSON",
             "campaignkey": campaign_key,
             "action": action,
-            "fromindex": fromindex,
-            "range": range_val
+            "fromindex": int(fromindex),
+            "range": int(range_val)
         }
         
         data = make_api_call("getcampaignrecipientsdata", method="POST", params=params)
@@ -162,14 +163,26 @@ def sync_campaign_data(campaign_key):
         # Get all recipient actions
         opened = get_campaign_recipients(campaign_key, "openedcontacts")
         clicked = get_campaign_recipients(campaign_key, "clickedcontacts")
-        bounced = get_campaign_recipients(campaign_key, "bouncedcontacts")
-        unsubscribed = get_campaign_recipients(campaign_key, "unsubscribedcontacts")
+        hard_bounce = get_campaign_recipients(campaign_key, "senthardbounce")
+        soft_bounce = get_campaign_recipients(campaign_key, "sentsoftbounce")
+        unsubscribed = get_campaign_recipients(campaign_key, "optoutcontacts")
+        
+        for r in hard_bounce.get("recipients", []):
+            r["bounce_type"] = "Hard"
+
+        for r in soft_bounce.get("recipients", []):
+            r["bounce_type"] = "Soft"
+
+        bounced_recipients = (
+            hard_bounce.get("recipients", []) +
+            soft_bounce.get("recipients", [])
+        )
         
         return {
             "report": report,
             "opened_contacts": opened["recipients"],
             "clicked_contacts": clicked["recipients"],
-            "bounced_contacts": bounced["recipients"],
+            "bounced_contacts": bounced_recipients,
             "unsubscribed_contacts": unsubscribed["recipients"]
         }
         
