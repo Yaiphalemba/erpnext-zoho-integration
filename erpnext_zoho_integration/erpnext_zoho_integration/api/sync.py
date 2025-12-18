@@ -164,7 +164,8 @@ def sync_campaign_analytics(campaign, campaign_key):
 
 
 def sync_campaign_recipients_data(campaign, campaign_key):
-    """Sync recipient actions (opens, clicks, bounces, etc.)"""
+    """Sync recipient actions (opens, clicks, bounces, etc.) with debug logging"""
+    # Updated action mapping based on Zoho API documentation
     action_mapping = {
         "openedcontacts": "Opened",
         "clickedcontacts": "Clicked",
@@ -176,25 +177,57 @@ def sync_campaign_recipients_data(campaign, campaign_key):
     
     for action_key, action_type in action_mapping.items():
         try:
+            frappe.logger().info(f"Fetching {action_type} recipients with key: {action_key}")
             result = get_campaign_recipients(campaign_key, action_key, range_val=100)
-            recipients = result.get("recipients", [])
+            
+            if not result:
+                frappe.logger().info(f"No result returned for {action_type} with key {action_key}")
+                continue
+            
+            # Check different possible response structures
+            if "list_of_details" in result:
+                recipients = result.get("list_of_details", [])
+                frappe.logger().info(f"Found {len(recipients)} {action_type} recipients in 'list_of_details'")
+            elif "recipients" in result:
+                recipients = result.get("recipients", [])
+                frappe.logger().info(f"Found {len(recipients)} {action_type} recipients in 'recipients'")
+            else:
+                # Try to find any array in the result
+                for key, value in result.items():
+                    if isinstance(value, list) and key != "urlclicks":  # Skip urlclicks array
+                        recipients = value
+                        frappe.logger().info(f"Found {len(recipients)} {action_type} recipients in '{key}'")
+                        break
+                else:
+                    recipients = []
+                    frappe.logger().info(f"No recipient list found in response for {action_type}")
+            
+            if recipients:
+                # Log first recipient to see structure
+                frappe.logger().info(f"First {action_type} recipient: {json.dumps(recipients[0] if recipients else {})}")
             
             for recipient_data in recipients:
                 sync_recipient(campaign, recipient_data, action_type)
                 
+            frappe.db.commit()
+            
         except Exception as e:
             frappe.log_error(
-                f"Error syncing {action_type} recipients: {str(e)}",
+                f"Error syncing {action_type} recipients with key {action_key}: {str(e)}",
                 f"Recipient Sync Error: {campaign.name}"
             )
+            frappe.logger().error(f"Full traceback for {action_type}: {frappe.get_traceback()}")
 
 
 def sync_recipient(campaign, recipient_data, action_type):
-    """Sync individual recipient data"""
+    """Sync individual recipient data with better debugging"""
     email = recipient_data.get("contactemailaddress")
     zoho_contact_id = recipient_data.get("contactid")
     
+    frappe.logger().debug(f"Syncing recipient: email={email}, action={action_type}")
+    
     if not email:
+        frappe.logger().warning(f"No email found for recipient: {recipient_data}")
         return
     
     # Find or create Contact
@@ -212,42 +245,108 @@ def sync_recipient(campaign, recipient_data, action_type):
     
     if existing:
         recipient = frappe.get_doc("Campaign Recipient", existing)
+        frappe.logger().debug(f"Updating existing recipient: {existing}")
     else:
         recipient = frappe.new_doc("Campaign Recipient")
         recipient.campaign = campaign.name
         recipient.email = email
         recipient.action_type = action_type
+        frappe.logger().debug(f"Creating new recipient for {email}")
     
     # Map fields
     recipient.contact = contact.name if contact else None
     recipient.zoho_contact_id = zoho_contact_id
     
-    # Handle sent_time
-    sent_time = recipient_data.get("sent_time")
-    if sent_time:
-        recipient.sent_time = get_datetime(int(sent_time) / 1000)
-        recipient.action_date = recipient.sent_time
+    # Handle sent_date - parse from "sentdate" field
+    sent_date = recipient_data.get("sentdate")
+    if sent_date:
+        try:
+            # Parse date like "05 Dec 2025, 04:21 PM"
+            from datetime import datetime
+            dt = datetime.strptime(sent_date, "%d %b %Y, %I:%M %p")
+            recipient.sent_time = dt
+            recipient.action_date = dt
+        except (ValueError, TypeError) as e:
+            frappe.logger().warning(f"Invalid sent_date {sent_date}: {str(e)}")
     
-    recipient.open_count = int(recipient_data.get("numoftimeopened", 0))
-    recipient.location = recipient_data.get("location")
+    # For clicked recipients, handle click-specific data
+    if action_type == "Clicked":
+        # Get click count
+        click_count = recipient_data.get("clickcount")
+        if click_count:
+            try:
+                recipient.click_count = int(click_count)
+            except (ValueError, TypeError):
+                recipient.click_count = 1
+        
+        # Store clicked URLs
+        clicked_urls = recipient_data.get("clickedurls")
+        if clicked_urls:
+            # Clean up the URLs string - remove brackets if present
+            if isinstance(clicked_urls, str):
+                clicked_urls = clicked_urls.strip("[]")
+                recipient.clicked_links = clicked_urls
+        
+        # Store click reports as JSON
+        click_reports = recipient_data.get("clickreports")
+        if click_reports:
+            try:
+                if isinstance(click_reports, str):
+                    # Parse the string representation of dict
+                    import ast
+                    try:
+                        click_reports_dict = ast.literal_eval(click_reports)
+                        recipient.click_reports = json.dumps(click_reports_dict)
+                    except:
+                        recipient.click_reports = click_reports
+                else:
+                    recipient.click_reports = json.dumps(click_reports)
+            except Exception as e:
+                frappe.logger().warning(f"Error parsing click_reports: {str(e)}")
+        
+        # Store URL clicks data
+        url_clicks = recipient_data.get("urlclicks")
+        if url_clicks:
+            recipient.url_clicks = json.dumps(url_clicks)
+    
+    # For opened recipients
+    elif action_type == "Opened":
+        # Store open reports if available
+        open_reports = recipient_data.get("openreports")
+        if open_reports:
+            try:
+                if isinstance(open_reports, str):
+                    import ast
+                    try:
+                        open_reports_dict = ast.literal_eval(open_reports)
+                        recipient.open_reports = json.dumps(open_reports_dict)
+                    except:
+                        recipient.open_reports = open_reports
+                else:
+                    recipient.open_reports = json.dumps(open_reports)
+            except Exception as e:
+                frappe.logger().warning(f"Error parsing open_reports: {str(e)}")
+    
+    # Common fields
     recipient.country = recipient_data.get("country")
     recipient.city = recipient_data.get("city")
     recipient.state = recipient_data.get("state")
-    recipient.is_spam = recipient_data.get("isspam") == "true"
-    recipient.is_optout = recipient_data.get("isoptout") == "true"
+    
+    # Handle boolean fields
+    rtbf = recipient_data.get("rtbf")
+    recipient.is_rtbf = rtbf == "1" if rtbf else False
+    
     recipient.contact_status = recipient_data.get("contactstatus")
     
     # Store additional data
-    recipient.full_name = f"{recipient_data.get('contactfn', '')} {recipient_data.get('contactln', '')}".strip()
+    full_name = f"{recipient_data.get('contactfn', '')} {recipient_data.get('contactln', '')}".strip()
+    recipient.full_name = full_name if full_name else None
+    
     recipient.company_name = recipient_data.get("companyname")
     recipient.job_title = recipient_data.get("jobtitle")
     
-    # Store open reports as JSON
-    open_reports = recipient_data.get("openreports")
-    if open_reports:
-        recipient.open_reports = json.dumps(open_reports)
-    
     recipient.save(ignore_permissions=True)
+    frappe.logger().debug(f"Saved recipient: {recipient.name}")
 
 
 def find_or_create_contact(contact_data):
