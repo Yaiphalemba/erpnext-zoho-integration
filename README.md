@@ -115,7 +115,7 @@ bench migrate
 ### Step 2: Register with Zoho
 
 1. Log in to [Zoho Campaigns](https://campaigns.zoho.in)
-2. Go to **Settings > Integrations > API**
+2. Go to [API Console](https://api-console.zoho.in/) to add/register. Refer [Zoho Campaings API Guide/Documentation](https://www.zoho.com/campaigns/help/developers/access-token.html) and [App/Client Registration Guide/Documentation](https://www.zoho.com/accounts/protocol/oauth-setup.html) for detailed guide and steps on how to get Client ID and Client Secret.
 3. Create a new OAuth app:
    - **App Name:** ERPNext Integration
    - **Redirect URI:** `https://yourdomain.com/api/method/erpnext_zoho_integration.erpnext_zoho_integration.api.oauth.callback`
